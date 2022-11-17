@@ -247,6 +247,24 @@ int main() try
     auto be_like_target = [&](const column_vector& x) {
         return mean(squared(x-target));
     };
+
+    int n_it = 0;
+    auto out_it_f = [&](const column_vector& x,const double& f,const double& rho) 
+    {
+					n_it++;
+     std::cout << "Iteration " << n_it << ":" << std::endl;
+     std::cout << "Current design vector:" << std::endl;
+     for (int i = 0; i < x.size(); i++)
+      std::cout << x(i) << ", ";
+
+     std::cout << std::endl;
+     std::cout << "Current objective value: " << f;
+     std::cout << std::endl;
+     std::cout << "Current trust region radius (rho): " << rho;
+     std::cout << std::endl;
+     std::cout << std::endl;
+
+    };
     starting_point = {-4,5,99,3};
     find_min_bobyqa(be_like_target, 
                     starting_point, 
@@ -255,7 +273,8 @@ int main() try
                     uniform_matrix<double>(4,1, 1e100),   // upper bound constraint
                     10,    // initial trust region radius
                     1e-6,  // stopping trust region radius
-                    100    // max number of objective function evaluations
+                    100,    // max number of objective function evaluations
+                    out_it_f
     );
     cout << "be_like_target solution:\n" << starting_point << endl;
 

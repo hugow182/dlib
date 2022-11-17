@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <functional>
 
 #include "../matrix.h"
 #include "optimization_bobyqa_abstract.h"
@@ -45,7 +46,8 @@ namespace dlib
         template <
             typename funct,
             typename T, 
-            typename U
+            typename U,
+            typename func
             >
         double find_min (
             const funct& f,
@@ -55,7 +57,8 @@ namespace dlib
             const U& xu_,
             const double rhobeg,
             const double rhoend,
-            const long max_f_evals
+            const long max_f_evals,
+            const func& f_it
         ) const
         {
             const unsigned long n = x.size();
@@ -78,13 +81,14 @@ namespace dlib
                             rhobeg,
                             rhoend,
                             max_f_evals,
+                            f_it,
                             w.get() );
         }
 
     private:
 
 
-        template <typename funct>
+        template <typename funct, typename func>
         doublereal bobyqa_(
             const funct& calfun,
             const integer n, 
@@ -95,6 +99,7 @@ namespace dlib
             const doublereal rhobeg,
             const doublereal rhoend,
             const integer maxfun,
+            const func& f_it,
             doublereal *w
         ) const
         {
@@ -226,7 +231,7 @@ namespace dlib
 
             /*     Make the call of BOBYQB. */
 
-            return bobyqb_(calfun, n, npt, &x[1], &xl[1], &xu[1], rhobeg, rhoend, maxfun, &w[
+            return bobyqb_(calfun,f_it, n, npt, &x[1], &xl[1], &xu[1], rhobeg, rhoend, maxfun, &w[
                     ixb], &w[ixp], &w[ifv], &w[ixo], &w[igo], &w[ihq], &w[ipq], &w[
                     ibmat], &w[izmat], ndim, &w[isl], &w[isu], &w[ixn], &w[ixa], &w[
                     id_], &w[ivl], &w[iw]);
@@ -236,9 +241,10 @@ namespace dlib
 
     // ----------------------------------------------------------------------------------------
 
-        template <typename funct>
+        template <typename funct,typename func>
         doublereal bobyqb_(
             const funct& calfun,
+            const func& f_it,
             const integer n,
             const integer npt,
             doublereal *x,
@@ -509,6 +515,8 @@ L60:
                 goto L680;
             }
             ++ntrits;
+            fsave;
+            f_it(mat(&xnew[1], n),f,rho);
 
             /*     Severe cancellation is likely to occur if XOPT is too far from XBASE. */
             /*     If the following test holds, then XBASE is shifted so that XOPT becomes */
@@ -689,6 +697,7 @@ L210:
                 /* L220: */
                 d__[i__] = xnew[i__] - xopt[i__];
             }
+            f_it(mat(&xnew[1], n),f,rho);
 
             /*     Calculate VLAG and BETA for the current choice of D. The scalar */
             /*     product of D with XPT(K,.) is going to be held in W(NPT+K) for */
@@ -3147,7 +3156,9 @@ L190:
                 d__1 = d__[i__];
                 *dsq += d__1 * d__1;
             }
+
             return;
+
             /*     The following instructions multiply the current S-vector by the second */
             /*     derivative matrix of the quadratic model, putting the product in HS. */
             /*     They are reached from three different parts of the software above and */
@@ -3341,7 +3352,8 @@ L210:
     template <
         typename funct,
         typename T, 
-        typename U
+        typename U,
+        typename func
         >
     double find_min_bobyqa (
         const funct& f,
@@ -3351,7 +3363,8 @@ L210:
         const U& x_upper,
         const double rho_begin,
         const double rho_end,
-        const long max_f_evals
+        const long max_f_evals,
+        const func& f_it
     ) 
     {
         // The starting point (i.e. x) must be a column vector.  
@@ -3388,7 +3401,7 @@ L210:
 
 
         bobyqa_implementation impl;
-        return impl.find_min(f, x, npt, x_lower, x_upper, rho_begin, rho_end, max_f_evals);
+        return impl.find_min(f, x, npt, x_lower, x_upper, rho_begin, rho_end, max_f_evals, f_it);
     }
 
 // ----------------------------------------------------------------------------------------
